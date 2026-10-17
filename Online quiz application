@@ -1,0 +1,153 @@
+import random
+import streamlit as st
+
+st.set_page_config(page_title="Online Quiz Application", page_icon="📝", layout="centered")
+
+QUIZ_DATA = {
+    "Python": [
+        {"question": "Which keyword is used to define a function in Python?",
+         "options": ["func", "define", "def", "function"], "answer": "def",
+         "explanation": "Python uses the def keyword to define a function."},
+        {"question": "Which data type stores True or False?",
+         "options": ["int", "bool", "str", "list"], "answer": "bool",
+         "explanation": "The bool type represents Boolean values: True and False."},
+        {"question": "What is the result of 3 ** 2 in Python?",
+         "options": ["6", "9", "8", "5"], "answer": "9",
+         "explanation": "The ** operator raises a number to a power, so 3² = 9."},
+        {"question": "Which symbol starts a single-line comment in Python?",
+         "options": ["//", "#", "/*", "--"], "answer": "#",
+         "explanation": "A # symbol begins a single-line comment in Python."},
+        {"question": "Which collection uses key-value pairs?",
+         "options": ["List", "Tuple", "Dictionary", "Set"], "answer": "Dictionary",
+         "explanation": "A dictionary stores data as key-value pairs."},
+    ],
+    "C Programming": [
+        {"question": "Which function is the usual entry point of a C program?",
+         "options": ["start()", "main()", "run()", "printf()"], "answer": "main()",
+         "explanation": "Execution of a standard C program begins in main()."},
+        {"question": "Which header is needed for printf()?",
+         "options": ["<stdlib.h>", "<math.h>", "<stdio.h>", "<string.h>"], "answer": "<stdio.h>",
+         "explanation": "printf() is declared in the standard input/output header stdio.h."},
+        {"question": "Which format specifier is commonly used for an int in printf()?",
+         "options": ["%f", "%c", "%d", "%s"], "answer": "%d",
+         "explanation": "%d is commonly used to print an int value."},
+        {"question": "Which operator gives the remainder in C?",
+         "options": ["/", "%", "*", "//"], "answer": "%",
+         "explanation": "The modulo operator % gives the remainder for integer operands."},
+        {"question": "Array indexing in C normally begins at which index?",
+         "options": ["0", "1", "-1", "Depends on the array size"], "answer": "0",
+         "explanation": "The first element of a C array is at index 0."},
+    ],
+    "Computer Science": [
+        {"question": "What does CPU stand for?",
+         "options": ["Central Processing Unit", "Computer Personal Unit", "Central Program Utility", "Core Processing User"],
+         "answer": "Central Processing Unit",
+         "explanation": "CPU stands for Central Processing Unit."},
+        {"question": "Which data structure follows FIFO?",
+         "options": ["Stack", "Queue", "Tree", "Graph"], "answer": "Queue",
+         "explanation": "A queue follows First In, First Out (FIFO)."},
+        {"question": "Which protocol is commonly used to browse secure websites?",
+         "options": ["FTP", "HTTP only", "HTTPS", "SMTP"], "answer": "HTTPS",
+         "explanation": "HTTPS uses encryption to protect communication with websites."},
+        {"question": "Which of these is an operating system?",
+         "options": ["Python", "Linux", "HTML", "SQL"], "answer": "Linux",
+         "explanation": "Linux is an operating system."},
+        {"question": "What is the binary representation of decimal 2?",
+         "options": ["01", "10", "11", "100"], "answer": "10",
+         "explanation": "Decimal 2 is written as 10 in binary."},
+    ],
+}
+
+if "quiz" not in st.session_state:
+    st.session_state.quiz = None
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
+
+st.title("📝 Online Quiz Application")
+st.write("Test your knowledge, submit your answers, and review your results.")
+
+with st.sidebar:
+    st.header("Quiz Settings")
+    subject = st.selectbox("Choose a subject", list(QUIZ_DATA.keys()))
+    question_count = st.slider("Number of questions", 3, 5, 5)
+    shuffle = st.checkbox("Shuffle questions", value=True)
+    st.caption("Practice mode • Instant results")
+
+if st.button("Start / Restart Quiz", type="primary", use_container_width=True):
+    questions = QUIZ_DATA[subject].copy()
+    if shuffle:
+        random.shuffle(questions)
+    st.session_state.quiz = {
+        "subject": subject,
+        "questions": questions[:question_count],
+        "answers": {},
+    }
+    st.session_state.submitted = False
+
+if st.session_state.quiz is None:
+    st.info("Choose a subject in the sidebar, then select **Start / Restart Quiz**.")
+    st.markdown("### Available subjects")
+    st.write("🐍 Python  ·  💻 C Programming  ·  🧠 Computer Science")
+else:
+    quiz = st.session_state.quiz
+    st.subheader(f"{quiz['subject']} Quiz")
+    st.caption(f"{len(quiz['questions'])} questions")
+
+    if not st.session_state.submitted:
+        with st.form("quiz_form"):
+            for index, question in enumerate(quiz["questions"]):
+                st.markdown(f"**Q{index + 1}. {question['question']}**")
+                selected = st.radio(
+                    "Choose one answer:",
+                    question["options"],
+                    index=None,
+                    key=f"answer_{index}",
+                    label_visibility="collapsed",
+                )
+                quiz["answers"][index] = selected
+                st.divider()
+            submitted = st.form_submit_button("Submit Answers", type="primary", use_container_width=True)
+
+        if submitted:
+            st.session_state.submitted = True
+            st.rerun()
+    else:
+        questions = quiz["questions"]
+        score = sum(
+            1 for i, q in enumerate(questions)
+            if quiz["answers"].get(i) == q["answer"]
+        )
+        total = len(questions)
+        percentage = score / total * 100
+
+        st.success("Quiz submitted! Here are your results.")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Score", f"{score}/{total}")
+        col2.metric("Percentage", f"{percentage:.0f}%")
+        col3.metric("Correct", f"{score}")
+
+        if percentage >= 80:
+            st.balloons()
+            st.write("🌟 Excellent work!")
+        elif percentage >= 50:
+            st.write("👍 Good effort. Keep practising!")
+        else:
+            st.write("📚 Keep learning—you can try again.")
+
+        st.subheader("Answer Review")
+        for index, question in enumerate(questions):
+            user_answer = quiz["answers"].get(index)
+            correct = user_answer == question["answer"]
+            st.markdown(f"**Q{index + 1}. {question['question']}**")
+            st.write(f"Your answer: {user_answer if user_answer else 'Not answered'}")
+            st.write(f"Correct answer: **{question['answer']}**")
+            st.write(f"Explanation: {question['explanation']}")
+            st.write("Result: ✅ Correct" if correct else "Result: ❌ Incorrect")
+            st.divider()
+
+        if st.button("Take Another Quiz", type="primary", use_container_width=True):
+            st.session_state.quiz = None
+            st.session_state.submitted = False
+            st.rerun()
+
+st.caption("Student project • Built with Python and Streamlit")
